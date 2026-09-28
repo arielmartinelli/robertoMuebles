@@ -14,11 +14,17 @@
     <meta property="og:locale" content="es_AR" />
     <meta property="og:title" content="Chape | Diseño + Fabricación de muebles a medida" />
     <meta property="og:description" content="Muebles a medida en melamina para casas y comercios en Córdoba. Diseñamos y fabricamos en taller propio." />
-    <meta property="og:image" content="/og-image.jpg" />
+    <meta property="og:url" content="%VITE_SITE_URL%/" />
+    <!-- WhatsApp y redes necesitan la dirección completa de la imagen (con dominio). El dominio se define en vite.config.ts -->
+    <meta property="og:image" content="%VITE_SITE_URL%/og-image.jpg?v=2" />
+    <meta property="og:image:secure_url" content="%VITE_SITE_URL%/og-image.jpg?v=2" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Chape, diseño y fabricación de muebles a medida" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="%VITE_SITE_URL%/og-image.jpg?v=2" />
+    <link rel="canonical" href="%VITE_SITE_URL%/" />
 
     <!-- Evita el parpadeo de colores: aplica el modo guardado antes de pintar -->
     <script>
@@ -38,7 +44,8 @@
         "description": "Estudio-taller de diseño y fabricación de muebles a medida en melamina, residenciales y comerciales.",
         "areaServed": "Córdoba, Argentina",
         "address": { "@type": "PostalAddress", "addressLocality": "Córdoba", "addressCountry": "AR" },
-        "image": "/og-image.jpg"
+        "url": "%VITE_SITE_URL%/",
+        "image": "%VITE_SITE_URL%/og-image.jpg"
       }
     </script>
   </head>
