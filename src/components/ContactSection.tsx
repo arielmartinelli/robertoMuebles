@@ -1,203 +1,134 @@
-import { useState } from 'react';
-import { Phone, Mail, MapPin, Clock, Send, CheckCircle } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { useId, useState, type FormEvent } from 'react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle2 } from 'lucide-react';
+import { useMode } from '../context/mode';
+import { CONTENT } from '../content/modes';
+import { PRICING } from '../config/pricing';
+import { SITE } from '../config/site';
+import { openWhatsApp } from '../lib/whatsapp';
+import { SectionHeader } from './ui/SectionHeader';
+import { Reveal, RevealGroup, RevealItem } from './ui/Reveal';
 
-export const ContactSection: React.FC = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    projectType: 'comercial',
-    message: ''
-  });
+type Errors = Partial<Record<'name' | 'phone' | 'message', string>>;
+
+export function ContactSection() {
+  const { mode } = useMode();
+  const uid = useId();
+  const [form, setForm] = useState({ name: '', phone: '', email: '', kind: '', message: '' });
+  const [errors, setErrors] = useState<Errors>({});
   const [sent, setSent] = useState(false);
+  const kinds = PRICING[mode].typologies.map((t) => t.label).concat('Otro');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.7 }
-    });
-    setSent(true);
-
-    const text = `*Consulta desde la Web Roberto Muebles:*
-------------------------------------
-👤 *Nombre:* ${formData.name}
-📱 *Teléfono:* ${formData.phone}
-✉️ *Email:* ${formData.email}
-🏢 *Tipo de Proyecto:* ${formData.projectType}
-📝 *Mensaje:* ${formData.message}
-------------------------------------`;
-
-    const encoded = encodeURIComponent(text);
-    window.open(`https://wa.me/5493510000000?text=${encoded}`, '_blank');
+  const validate = (): Errors => {
+    const e: Errors = {};
+    if (form.name.trim().length < 2) e.name = 'Ingresá tu nombre.';
+    if (!/^[+\d][\d\s()-]{6,}$/.test(form.phone.trim())) e.phone = 'Ingresá un teléfono válido, con característica.';
+    if (form.message.trim().length < 10) e.message = 'Contanos un poco más (al menos 10 caracteres).';
+    return e;
   };
 
+  const onSubmit = (ev: FormEvent) => {
+    ev.preventDefault();
+    const e = validate();
+    setErrors(e);
+    if (Object.keys(e).length) return;
+    openWhatsApp(
+      [
+        'Hola Chape, les escribo desde la web:',
+        `• Nombre: ${form.name.trim()}`,
+        `• Teléfono: ${form.phone.trim()}`,
+        form.email.trim() ? `• Email: ${form.email.trim()}` : '',
+        `• Rubro: ${CONTENT[mode].label}`,
+        `• Necesito: ${form.kind || kinds[0]}`,
+        `• Mensaje: ${form.message.trim()}`,
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    );
+    setSent(true);
+  };
+
+  const set = (k: keyof typeof form) => (ev: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: ev.target.value }));
+
+  const info = [
+    { Icon: MapPin, label: 'Taller', value: SITE.address },
+    { Icon: Phone, label: 'Teléfono y WhatsApp', value: SITE.phoneLabel },
+    { Icon: Mail, label: 'Email', value: SITE.email },
+    { Icon: Clock, label: 'Horario', value: SITE.hours },
+  ];
+
   return (
-    <section id="contacto" className="py-24 bg-[#090a0f] relative overflow-hidden">
-      {/* Glow Effects */}
-      <div className="absolute top-1/2 left-10 w-80 h-80 bg-amber-500/5 rounded-full blur-[130px] pointer-events-none" />
+    <section id="contacto" aria-labelledby="contacto-title" className="py-14 md:py-28">
+      <div className="mx-auto max-w-[1320px] px-5 md:px-10">
+        <SectionHeader id="contacto-title" eyebrow="Contacto" title="Hablemos de tu proyecto" intro={CONTENT[mode].contactIntro} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          {/* Left Column: Workshop & Direct Contact Details (5 Cols) */}
-          <div className="lg:col-span-5 space-y-8 text-left">
-            <div className="space-y-3">
-              <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
-                Hablemos de tu Próximo Proyecto
-              </span>
-              <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                Contacto Directo con <span className="text-gold-gradient">el Taller</span>
-              </h2>
-              <p className="text-neutral-400 text-sm leading-relaxed">
-                Ya sea un local en Dinosaurio Mall, una isla para shopping o el amoblamiento de tu residencia en Córdoba, estamos a tu disposición para asesorarte y cotizar.
-              </p>
+        <div className="grid gap-6 md:gap-10 lg:grid-cols-[1fr_1.4fr]">
+          <RevealGroup as="ul" stagger={0.08} className="grid grid-cols-2 gap-px self-start overflow-hidden rounded-md border border-line bg-line lg:grid-cols-1">
+            {info.map(({ Icon, label, value }) => (
+              <RevealItem as="li" key={label} className="flex flex-col items-start gap-2 bg-bg p-4 sm:flex-row sm:gap-4 sm:p-5">
+                <Icon className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink" aria-hidden="true" />
+                <div>
+                  <p className="font-mono text-[0.6rem] uppercase tracking-[0.1em] text-muted sm:text-[0.68rem]">{label}</p>
+                  <p className="mt-1 select-all break-words text-[0.85rem] sm:text-base">{value}</p>
+                </div>
+              </RevealItem>
+            ))}
+          </RevealGroup>
+
+          <Reveal kind="block"><form noValidate onSubmit={onSubmit} className="grid gap-4 rounded-lg border border-line bg-surface p-4 sm:gap-5 sm:p-6 md:p-9">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5">
+              <Field id={`${uid}-name`} label="Nombre *" error={errors.name}>
+                <input id={`${uid}-name`} className="field" autoComplete="name" maxLength={80} value={form.name} onChange={set('name')} aria-invalid={!!errors.name} aria-describedby={errors.name ? `${uid}-name-err` : undefined} />
+              </Field>
+              <Field id={`${uid}-phone`} label="Teléfono / WhatsApp *" error={errors.phone}>
+                <input id={`${uid}-phone`} className="field" type="tel" autoComplete="tel" inputMode="tel" maxLength={25} placeholder="351 000 0000" value={form.phone} onChange={set('phone')} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? `${uid}-phone-err` : undefined} />
+              </Field>
             </div>
-
-            {/* Direct Information Blocks */}
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800 flex items-start gap-3.5">
-                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-neutral-400 uppercase">Taller de Fabricación & Oficina</div>
-                  <div className="text-sm font-semibold text-white mt-0.5">Av. Monseñor Pablo Cabrera 3850, Córdoba Capital</div>
-                  <div className="text-xs text-neutral-400 mt-0.5">A 5 minutos del Dino Mall Rodríguez del Busto</div>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800 flex items-start gap-3.5">
-                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
-                  <Phone className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-neutral-400 uppercase">Teléfono & WhatsApp Directo</div>
-                  <div className="text-sm font-semibold text-white mt-0.5">+54 9 351 456-7890 / +54 9 351 600-1122</div>
-                  <div className="text-xs text-emerald-400 mt-0.5">Atención rápida por WhatsApp comercial</div>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800 flex items-start gap-3.5">
-                <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-neutral-400 uppercase">Correo Electrónico</div>
-                  <div className="text-sm font-semibold text-white mt-0.5">presupuestos@robertomuebles.com.ar</div>
-                  <div className="text-xs text-neutral-400 mt-0.5">Envío de planos en DWG, PDF o renders</div>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800 flex items-start gap-3.5">
-                <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-neutral-400 uppercase">Horarios de Taller</div>
-                  <div className="text-sm font-semibold text-white mt-0.5">Lunes a Viernes: 08:00 a 18:30 hs</div>
-                  <div className="text-xs text-neutral-400 mt-0.5">Guardias para montajes nocturnos en shoppings</div>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-3 sm:gap-5">
+              <Field id={`${uid}-email`} label="Email (opcional)">
+                <input id={`${uid}-email`} className="field" type="email" autoComplete="email" maxLength={120} value={form.email} onChange={set('email')} />
+              </Field>
+              <Field id={`${uid}-kind`} label="¿Qué necesitás?">
+                <select id={`${uid}-kind`} className="field" value={form.kind || kinds[0]} onChange={set('kind')}>
+                  {kinds.map((k) => (
+                    <option key={k}>{k}</option>
+                  ))}
+                </select>
+              </Field>
             </div>
-          </div>
-
-          {/* Right Column: Contact & Plan Submission Form (7 Cols) */}
-          <div className="lg:col-span-7 bg-neutral-900/70 border border-neutral-800 rounded-3xl p-6 sm:p-10 backdrop-blur-xl shadow-2xl">
-            <h3 className="font-display text-xl sm:text-2xl font-bold text-white mb-2">
-              Envíanos los Detalles de tu Obra
-            </h3>
-            <p className="text-xs sm:text-sm text-neutral-400 mb-6">
-              Te responderemos en el día con un análisis de viabilidad, tiempos de entrega y cotización formal.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-neutral-300">Nombre completo / Empresa *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. Martín (Jacinto Café)"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 text-xs sm:text-sm rounded-xl bg-neutral-950 border border-neutral-800 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-neutral-300">Teléfono / WhatsApp *</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="Ej. +54 9 351 1234567"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-3 text-xs sm:text-sm rounded-xl bg-neutral-950 border border-neutral-800 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-neutral-300">Email de Contacto</label>
-                  <input
-                    type="email"
-                    placeholder="nombre@empresa.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 text-xs sm:text-sm rounded-xl bg-neutral-950 border border-neutral-800 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-neutral-300">Categoría del Proyecto</label>
-                  <select
-                    value={formData.projectType}
-                    onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
-                    className="w-full px-4 py-3 text-xs sm:text-sm rounded-xl bg-neutral-950 border border-neutral-800 text-white focus:outline-none focus:border-amber-500"
-                  >
-                    <option value="isla_shopping">Isla para Shopping (Dinosaurio Mall, etc.)</option>
-                    <option value="mostrador_comercial">Mostrador / Front Desk de Atención</option>
-                    <option value="local_comercial">Equipamiento Completo de Local Comercial</option>
-                    <option value="particular_cocina">Particular: Cocina a Medida</option>
-                    <option value="particular_vestidor">Particular: Vestidor / Placard</option>
-                    <option value="otro">Mobiliario Especial a Medida</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300">Mensaje y especificaciones</label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Cuéntanos medidas estimadas, ubicación de la obra (ej. Dinosaurio Mall, Nueva Córdoba, Country...), materiales preferidos o si ya cuentas con planos..."
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full px-4 py-3 text-xs sm:text-sm rounded-xl bg-neutral-950 border border-neutral-800 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-500 resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3.5 px-6 rounded-xl text-sm font-bold text-neutral-950 bg-gradient-to-r from-[#e6c99c] via-[#c5a880] to-[#b38b59] hover:scale-[1.01] active:scale-[0.99] transition-transform shadow-lg shadow-amber-900/30 flex items-center justify-center gap-2"
-              >
-                <Send className="w-4 h-4 text-neutral-950" />
-                <span>Enviar Consulta y Coordinar Visita</span>
+            <Field id={`${uid}-msg`} label="Mensaje *" error={errors.message}>
+              <textarea id={`${uid}-msg`} className="field min-h-32 resize-y" maxLength={800} placeholder="Medidas aproximadas, barrio o shopping, materiales que te gustan…" value={form.message} onChange={set('message')} aria-invalid={!!errors.message} aria-describedby={errors.message ? `${uid}-msg-err` : undefined} />
+            </Field>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <button type="submit" className="btn btn-primary">
+                <Send className="h-4 w-4" aria-hidden="true" />
+                Enviar por WhatsApp
               </button>
-
               {sent && (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 shrink-0" />
-                  <span>¡Mensaje preparado! Te redireccionamos a WhatsApp para confirmar el envío al taller.</span>
-                </div>
+                <p role="status" className="flex items-center gap-2 text-sm text-muted">
+                  <CheckCircle2 className="h-4 w-4 text-accent-ink" aria-hidden="true" />
+                  Abrimos WhatsApp con tu mensaje listo para enviar.
+                </p>
               )}
-            </form>
-          </div>
+            </div>
+          </form></Reveal>
         </div>
       </div>
     </section>
   );
-};
+}
+
+function Field({ id, label, error, children }: { id: string; label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-1.5">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      {children}
+      {error && (
+        <p id={`${id}-err`} className="text-sm text-[#d0453a]">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}

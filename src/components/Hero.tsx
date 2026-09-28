@@ -1,149 +1,111 @@
-import { useEffect, useState } from 'react';
-import { Interactive3DViewer } from './Interactive3DViewer';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
+import { m, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+import { useMode } from '../context/mode';
+import { CONTENT } from '../content/modes';
+import { ChapeIso3D } from './brand/ChapeIso3D';
+import { ModeSwitch } from './ModeSwitch';
+import { Swap } from './ui/Swap';
+import { RevealGroup, RevealItem } from './ui/Reveal';
+import { StatValue } from './ui/StatValue';
 
-interface CounterProps {
-  target: number;
-  prefix?: string;
-  suffix?: string;
-  duration?: number;
-}
+export function Hero() {
+  const { mode } = useMode();
+  const c = CONTENT[mode];
+  const ref = useRef<HTMLElement>(null);
+  const reduce = useReducedMotion();
+  const desktop = useDesktop();
+  const still = reduce || !desktop;
 
-const AnimatedCounter: React.FC<CounterProps> = ({
-  target,
-  prefix = '',
-  suffix = '',
-  duration = 1600
-}) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let startTime: number | null = null;
-    let animationFrame: number;
-
-    const step = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      // Ease out cubic
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(easeOut * target));
-
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(step);
-      } else {
-        setCount(target);
-      }
-    };
-
-    animationFrame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [target, duration]);
-
+  // Parallax suave del isotipo mientras se hace scroll.
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
+  const isoY = useTransform(scrollYProgress, [0, 1], [0, still ? 0 : 90]);
+  
   return (
-    <span>
-      {prefix}
-      {count}
-      {suffix}
-    </span>
-  );
-};
+    <section ref={ref} id="inicio" aria-labelledby="hero-title" className="plan-grid relative overflow-hidden border-b border-line">
+      <div className="mx-auto grid max-w-[1320px] items-center gap-8 px-5 pb-10 pt-24 md:px-10 md:pt-36 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:pb-20">
+        <div>
+          <m.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <p className="eyebrow mb-3 text-muted">¿Qué querés equipar?</p>
+            <ModeSwitch size="lg" className="w-full sm:w-auto" />
+          </m.div>
 
-export const Hero: React.FC = () => {
-  return (
-    <section className="max-w-[1400px] mx-auto px-6 md:px-12 pt-12 pb-16 md:pt-16 md:pb-20">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-        {/* Text content (6 Cols) */}
-        <div className="lg:col-span-6 flex flex-col justify-between text-left">
-          <div>
-            {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-bold text-primary tracking-tight leading-[1.08] mb-6">
-              Mobiliario comercial, islas de shopping &amp; arquitectura a medida.
+          <Swap id={`hero-${mode}`} className="mt-8 md:mt-9">
+            <p className="eyebrow text-accent-ink">{c.hero.eyebrow}</p>
+            <h1 id="hero-title" className="font-display mt-3 text-[clamp(1.85rem,4.1vw,3.6rem)] leading-[1.02] uppercase md:mt-4">
+              {c.hero.title}{' '}
+              <span className="underline decoration-corte decoration-[0.14em] underline-offset-[0.12em] [text-decoration-skip-ink:none]">
+                {c.hero.highlight}
+              </span>
             </h1>
-
-            {/* Paragraph */}
-            <p className="text-base sm:text-lg text-on-surface-variant font-normal leading-relaxed max-w-xl mb-8">
-              Diseño, mecanizado CNC y montaje nocturno para centros comerciales y proyectos de autor. Soluciones de alto tránsito homologadas para <strong className="text-primary font-semibold">Dinosaurio Mall</strong> y grandes franquicias como <strong className="text-primary font-semibold">Jacinto Café</strong>.
-            </p>
-
-            {/* Action Buttons with hover states */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <a
-                className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary text-xs uppercase font-mono tracking-widest px-7 py-3.5 rounded hover:bg-neutral-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all shadow-xs"
-                href="#cotizador"
-              >
-                <span>Cotizar Proyecto</span>
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            <p className="mt-5 max-w-[56ch] text-base leading-relaxed text-muted md:mt-6 md:text-lg">{c.hero.text}</p>
+            <div className="mt-7 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:gap-3 md:mt-8">
+              <a href="#presupuesto" className="btn btn-primary px-3 text-[0.7rem] sm:px-[1.4rem] sm:text-[0.78rem]">
+                {c.hero.primary}
+                <ArrowRight className="hidden h-4 w-4 sm:block" aria-hidden="true" />
               </a>
-
-              <a
-                className="inline-flex items-center justify-center border border-outline-variant bg-white text-xs uppercase font-mono tracking-widest px-6 py-3.5 rounded hover:border-primary hover:shadow-xs hover:-translate-y-0.5 active:translate-y-0 transition-all text-primary"
-                href="#obras"
-              >
-                Ver Obras Realizadas
+              <a href="#proyectos" className="btn btn-ghost px-3 text-[0.7rem] sm:px-[1.4rem] sm:text-[0.78rem]">
+                {c.hero.secondary}
               </a>
             </div>
-          </div>
+          </Swap>
         </div>
 
-        {/* 3D Shopping Mall Island Showcase (6 Cols) */}
-        <div className="lg:col-span-6">
-          <Interactive3DViewer initialFinish="paraiso_grafito" />
-        </div>
+        {/* Isotipo protagonista: el cajón se abre al cargar y al cambiar de modo */}
+        <m.div
+          style={{ y: isoY }}
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          className="relative -mx-2 w-[calc(100%+1rem)] sm:mx-auto sm:w-full sm:max-w-[420px] lg:max-w-[480px]"
+        >
+          {/* Isotipo 3D: se gira arrastrando, el hover resalta cada módulo y el click guarda o saca el cajón. */}
+          <ChapeIso3D replayKey={mode} />
+        </m.div>
       </div>
 
-      {/* 4 Minimal Metric Cards with Animated Counters & Hover Effects */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-outline-variant border border-outline-variant rounded-lg overflow-hidden mt-14 text-center">
-        {/* 01: Trabajos */}
-        <div className="bg-[#faf9f6] p-6 flex flex-col items-center justify-center hover:bg-white hover:-translate-y-0.5 hover:shadow-xs transition-all duration-300 group cursor-default">
-          <span className="font-mono text-[11px] text-accent-wood tracking-widest uppercase mb-1 font-semibold group-hover:text-primary transition-colors">
-            Trabajos
-          </span>
-          <span className="font-mono text-2xl sm:text-3xl font-bold text-primary tracking-tight">
-            <AnimatedCounter target={280} prefix="+" duration={1800} />
-          </span>
-          <span className="text-[11px] font-mono text-on-surface-variant mt-1">
-            Obras entregadas
-          </span>
-        </div>
-
-        {/* 02: Experiencia */}
-        <div className="bg-[#faf9f6] p-6 flex flex-col items-center justify-center hover:bg-white hover:-translate-y-0.5 hover:shadow-xs transition-all duration-300 group cursor-default">
-          <span className="font-mono text-[11px] text-accent-wood tracking-widest uppercase mb-1 font-semibold group-hover:text-primary transition-colors">
-            Experiencia
-          </span>
-          <span className="font-mono text-2xl sm:text-3xl font-bold text-primary tracking-tight">
-            <AnimatedCounter target={15} prefix="+" suffix=" años" duration={1500} />
-          </span>
-          <span className="text-[11px] font-mono text-on-surface-variant mt-1">
-            Oficio &amp; taller propio
-          </span>
-        </div>
-
-        {/* 03: Reputación */}
-        <div className="bg-[#faf9f6] p-6 flex flex-col items-center justify-center hover:bg-white hover:-translate-y-0.5 hover:shadow-xs transition-all duration-300 group cursor-default">
-          <span className="font-mono text-[11px] text-accent-wood tracking-widest uppercase mb-1 font-semibold group-hover:text-primary transition-colors">
-            Reputación
-          </span>
-          <span className="font-mono text-2xl sm:text-3xl font-bold text-primary tracking-tight">
-            <AnimatedCounter target={100} suffix="%" duration={1600} />
-          </span>
-          <span className="text-[11px] font-mono text-on-surface-variant mt-1">
-            Shoppings aprobados
-          </span>
-        </div>
-
-        {/* 04: Garantía */}
-        <div className="bg-[#faf9f6] p-6 flex flex-col items-center justify-center hover:bg-white hover:-translate-y-0.5 hover:shadow-xs transition-all duration-300 group cursor-default">
-          <span className="font-mono text-[11px] text-accent-wood tracking-widest uppercase mb-1 font-semibold group-hover:text-primary transition-colors">
-            Garantía
-          </span>
-          <span className="font-mono text-2xl sm:text-3xl font-bold text-primary tracking-tight">
-            <AnimatedCounter target={5} suffix=" años" duration={1400} />
-          </span>
-          <span className="text-[11px] font-mono text-on-surface-variant mt-1">
-            Estructural &amp; herrajes
-          </span>
-        </div>
+      {/* Datos clave con efecto creciente */}
+      <div className="border-t border-line">
+        <RevealGroup key={mode} as="dl" stagger={0.12} className="mx-auto grid max-w-[1320px] grid-cols-2 md:grid-cols-4">
+          {c.stats.map((s, i) => (
+            <RevealItem
+              key={s.label}
+              className={`group relative flex flex-col gap-1 px-5 py-5 md:px-10 md:py-7 ${i % 2 === 1 ? 'border-l border-line' : ''} ${i >= 2 ? 'border-t border-line md:border-t-0' : ''} ${i === 2 ? 'md:border-l' : ''}`}
+            >
+              <dt className="order-2 font-mono text-[0.66rem] uppercase tracking-[0.12em] text-muted md:text-[0.72rem]">{s.label}</dt>
+              <dd className="font-display order-1 text-[1.35rem] uppercase sm:text-2xl md:text-3xl">
+                <StatValue value={s.value} />
+              </dd>
+              <span aria-hidden="true" className="absolute bottom-0 left-5 right-5 h-[3px] origin-left scale-x-0 bg-corte transition-transform duration-500 group-hover:scale-x-100 md:left-10 md:right-10" />
+            </RevealItem>
+          ))}
+        </RevealGroup>
       </div>
+
+      {c.trust && (
+        <div className="border-t border-line">
+          <RevealGroup className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-x-8 gap-y-2 px-5 py-5 md:px-10" stagger={0.08}>
+            <RevealItem kind="fade"><span className="eyebrow text-accent-ink">{c.trust.label}</span></RevealItem>
+            {c.trust.items.map((t) => (
+              <RevealItem key={t} kind="fade">
+                <span className="font-display text-xs uppercase tracking-[0.06em] text-muted sm:text-sm">{t}</span>
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        </div>
+      )}
     </section>
   );
-};
+}
+
+/** true en pantallas de escritorio (el parallax solo se usa ahí). */
+function useDesktop() {
+  const [desktop, setDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const on = () => setDesktop(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return desktop;
+}

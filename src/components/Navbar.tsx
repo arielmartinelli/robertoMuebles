@@ -1,116 +1,96 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
+import { ChapeLogo } from './brand/ChapeLogo';
+import { ModeSwitch } from './ModeSwitch';
+import { REVIEWS } from '../data/reviews';
 
-export const Navbar: React.FC = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const LINKS = [
+  { href: '#nosotros', label: 'Nosotros' },
+  { href: '#proyectos', label: 'Proyectos' },
+  { href: '#presupuesto', label: 'Presupuesto' },
+  ...(REVIEWS.length ? [{ href: '#resenas', label: 'Reseñas' }] : []),
+  { href: '#contacto', label: 'Contacto' },
+];
+
+export function Navbar() {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
 
   return (
-    <header className="fixed top-0 w-full z-50 bg-[#faf9f6]/90 backdrop-blur-md border-b border-outline-variant">
-      <div className="max-w-[1400px] mx-auto px-6 md:px-12 h-20 flex items-center justify-between">
-        {/* Brand Logo & Tagline */}
-        <a className="flex items-center gap-3.5 group" href="#">
-          <div className="h-9 w-9 bg-primary text-white flex items-center justify-center rounded-sm font-mono font-bold text-sm">
-            RM
-          </div>
-          <div className="flex flex-col tracking-tight text-left">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-[15px] tracking-[0.16em] uppercase text-primary">
-                ROBERTO MUEBLES
-              </span>
-              <span className="font-mono text-[9px] px-1.5 py-0.2 bg-surface-container border border-outline-variant text-accent-wood rounded">
-                CÓRDOBA
-              </span>
-            </div>
-            <span className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider">
-              Mobiliario a Medida &amp; Arquitectura Comercial
-            </span>
-          </div>
+    <header
+      className={`fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300 ${
+        scrolled || open ? 'border-line bg-bg/92 backdrop-blur-md' : 'border-transparent bg-bg/0'
+      }`}
+    >
+      <a href="#contenido" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50 focus:rounded focus:bg-corte focus:px-3 focus:py-2 focus:text-grafito">
+        Saltar al contenido
+      </a>
+      <div className="mx-auto flex h-[4.5rem] max-w-[1320px] items-center justify-between gap-4 px-5 md:px-10">
+        <a href="#inicio" aria-label="Chape, ir al inicio" className="shrink-0">
+          <span className="hidden sm:block"><ChapeLogo /></span>
+          <span className="sm:hidden"><ChapeLogo compact /></span>
         </a>
 
-        {/* Desktop Navigation with refined hover */}
-        <nav className="hidden md:flex items-center gap-2 lg:gap-3 text-[13px] font-medium tracking-wide">
-          <a className="text-on-surface-variant hover:text-primary hover:bg-surface-container px-3 py-1.5 rounded transition-all duration-200" href="#obras">
-            Obras
-          </a>
-          <a className="text-on-surface-variant hover:text-primary hover:bg-surface-container px-3 py-1.5 rounded transition-all duration-200" href="#diferenciales">
-            Capacidad Técnica
-          </a>
-          <a className="text-on-surface-variant hover:text-primary hover:bg-surface-container px-3 py-1.5 rounded transition-all duration-200" href="#cotizador">
-            Cotizador
-          </a>
-          <a className="text-on-surface-variant hover:text-primary hover:bg-surface-container px-3 py-1.5 rounded transition-all duration-200" href="#empresas">
-            Empresas &amp; Referencias
-          </a>
-          <a className="text-on-surface-variant hover:text-primary hover:bg-surface-container px-3 py-1.5 rounded transition-all duration-200" href="#contacto">
-            Contacto
-          </a>
+        <nav aria-label="Principal" className="hidden items-center gap-1 lg:flex">
+          {LINKS.map((l) => (
+            <a key={l.href} href={l.href} className="rounded px-3 py-2 text-[0.92rem] text-muted transition-colors hover:text-ink">
+              {l.label}
+            </a>
+          ))}
         </nav>
 
-        {/* Action Button with hover */}
-        <div className="flex items-center gap-4">
-          <a
-            className="hidden sm:inline-flex items-center justify-center text-[12px] uppercase font-mono tracking-[0.14em] bg-primary text-on-primary px-5 py-2.5 rounded hover:bg-neutral-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all shadow-xs"
-            href="#cotizador"
-          >
-            Cotizar
+        <div className="flex items-center gap-3">
+          <div className="hidden md:block"><ModeSwitch /></div>
+          <a href="#presupuesto" className="btn btn-primary hidden xl:inline-flex">
+            Pedir presupuesto
           </a>
-
-          {/* Mobile Menu Button */}
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded text-primary hover:bg-surface-container border border-outline-variant"
-            aria-label="Toggle navigation menu"
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-controls="menu-movil"
+            aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+            className="grid h-11 w-11 place-items-center rounded border border-line text-ink lg:hidden"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-[#faf9f6] border-b border-outline-variant px-6 py-5 space-y-4 animate-in fade-in duration-200">
-          <nav className="flex flex-col space-y-3 text-sm font-medium">
-            <a
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-1 text-primary hover:text-accent-wood"
-              href="#obras"
-            >
-              Obras Realizadas
-            </a>
-            <a
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-1 text-primary hover:text-accent-wood"
-              href="#diferenciales"
-            >
-              Capacidad Técnica & CNC
-            </a>
-            <a
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-1 text-primary hover:text-accent-wood"
-              href="#empresas"
-            >
-              Empresas & Contactos
-            </a>
-            <a
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-1 text-primary hover:text-accent-wood"
-              href="#contacto"
-            >
-              Taller & Contacto
-            </a>
+      {open && (
+        <div id="menu-movil" className="border-t border-line bg-bg px-5 pb-6 pt-4 lg:hidden">
+          <div className="mb-5 md:hidden"><ModeSwitch className="w-full" /></div>
+          <nav aria-label="Menú móvil" className="flex flex-col">
+            {LINKS.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="border-b border-line py-3.5 text-lg text-ink"
+              >
+                {l.label}
+              </a>
+            ))}
           </nav>
-
-          <div className="pt-3 border-t border-outline-variant">
-            <a
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full inline-flex items-center justify-center text-[12px] uppercase font-mono tracking-[0.14em] bg-primary text-on-primary py-3 rounded text-center shadow-xs"
-              href="#cotizador"
-            >
-              Iniciar Cotización
-            </a>
-          </div>
+          <a href="#presupuesto" onClick={() => setOpen(false)} className="btn btn-primary mt-5 w-full">
+            Pedir presupuesto
+          </a>
         </div>
       )}
     </header>
   );
-};
+}

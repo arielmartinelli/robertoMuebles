@@ -1,9 +1,12 @@
-export type ProjectCategory = 'todos' | 'comercial' | 'islas' | 'mostradores' | 'particular';
+import type { Mode } from '../context/mode';
+
+export type ProjectType = 'cocina' | 'placard' | 'living' | 'isla' | 'local' | 'mostrador';
 
 export interface Project {
   id: string;
+  segment: Mode;
+  type: ProjectType;
   title: string;
-  category: ProjectCategory;
   client: string;
   location: string;
   image: string;
@@ -15,31 +18,13 @@ export interface Project {
     hardware: string;
     timeframe: string;
   };
-  highlight?: boolean;
 }
 
-export type ProjectType = 'isla_shopping' | 'local_comercial' | 'mostrador' | 'particular_cocina' | 'particular_vestidor';
-
-export type MaterialType = 'melamina_premium' | 'enchapado_natural' | 'madera_maciza' | 'hierro_madera';
-
-export type CountertopType = 'melamina' | 'madera_lustrada' | 'marmol' | 'silestone';
-
-export interface QuoteConfig {
-  projectType: ProjectType;
-  meters: number;
-  material: MaterialType;
-  countertop: CountertopType;
-  hasLedLighting: boolean;
-  hasPremiumHardware: boolean;
-  hasSecurityGlass: boolean;
-  hasSmartLocks: boolean;
-  currency: 'ARS' | 'USD';
-}
-
-export interface MaterialFinishOption {
-  id: string;
+export interface Review {
   name: string;
-  color: string;
-  texture: string;
-  metalColor?: string;
+  segment: Mode;
+  project: string;
+  text: string;
+  /** 1 a 5 */
+  rating: number;
 }

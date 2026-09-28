@@ -1,10 +1,13 @@
 import type { Project } from '../types';
 
+// PENDIENTE: reemplazar fotos de referencia (Unsplash) por fotos reales de las obras de Chape.
+
 export const PROJECTS_DATA: Project[] = [
   {
     id: 'jacinto-dino-busto',
+    segment: 'comercial',
+    type: 'mostrador',
     title: 'Mostrador Principal y Barra de Atención - Jacinto',
-    category: 'mostradores',
     client: 'Jacinto Café & Bistro',
     location: 'Dinosaurio Mall (Rodríguez del Busto), Córdoba',
     image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=1200&auto=format&fit=crop',
@@ -15,13 +18,13 @@ export const PROJECTS_DATA: Project[] = [
       finish: 'Hidrolaca poliuretánica mate alto tránsito (Ignífugo)',
       hardware: 'Guías tándem ocultas Blum con freno y amortiguación',
       timeframe: 'Fabricación: 18 días | Montaje nocturno en shopping: 2 noches'
-    },
-    highlight: true
+    }
   },
   {
     id: 'jacinto-isla-dino-alto-verde',
+    segment: 'comercial',
+    type: 'isla',
     title: 'Isla Comercial 360° - Jacinto Deli & To Go',
-    category: 'islas',
     client: 'Jacinto Sucursal Shopping',
     location: 'Dinosaurio Mall (Alto Verde / Mall Central), Córdoba',
     image: 'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?q=80&w=1200&auto=format&fit=crop',
@@ -32,13 +35,13 @@ export const PROJECTS_DATA: Project[] = [
       finish: 'Laca poliuretánica satinada 3 capas UV',
       hardware: 'Cerraduras computarizadas unificadas Hafele',
       timeframe: 'Fabricación: 21 días | Montaje express: 1 jornada'
-    },
-    highlight: true
+    }
   },
   {
     id: 'isla-tech-shopping',
+    segment: 'comercial',
+    type: 'isla',
     title: 'Isla Comercial Tecnológica & Accesorios',
-    category: 'islas',
     client: 'iZone Technology',
     location: 'Córdoba Shopping (Villa Cabrera), Córdoba',
     image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1200&auto=format&fit=crop',
@@ -53,8 +56,9 @@ export const PROJECTS_DATA: Project[] = [
   },
   {
     id: 'mostrador-recepcion-corporativo',
+    segment: 'comercial',
+    type: 'mostrador',
     title: 'Front Desk Monolítico con Luz Rasante',
-    category: 'mostradores',
     client: 'Torres Capitalinas / Corporativo',
     location: 'Nueva Córdoba, Córdoba',
     image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1200&auto=format&fit=crop',
@@ -69,8 +73,9 @@ export const PROJECTS_DATA: Project[] = [
   },
   {
     id: 'boutique-retail-comercial',
+    segment: 'comercial',
+    type: 'local',
     title: 'Equipamiento Comercial y Exhibidores para Boutique',
-    category: 'comercial',
     client: 'Sartori Concept Store',
     location: 'Paseo del Jockey (Jardín), Córdoba',
     image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200&auto=format&fit=crop',
@@ -85,8 +90,9 @@ export const PROJECTS_DATA: Project[] = [
   },
   {
     id: 'cocina-particular-gourmet',
+    segment: 'residencial',
+    type: 'cocina',
     title: 'Cocina de Alta Gama con Isla Desayunadora',
-    category: 'particular',
     client: 'Residencia Privada',
     location: 'Country Las Delicias, Córdoba',
     image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=1200&auto=format&fit=crop',
@@ -101,8 +107,9 @@ export const PROJECTS_DATA: Project[] = [
   },
   {
     id: 'vestidor-walkin-particular',
+    segment: 'residencial',
+    type: 'placard',
     title: 'Vestidor Walk-In Master Suite de Piso a Techo',
-    category: 'particular',
     client: 'Residencia Privada',
     location: 'Villa Belgrano, Córdoba',
     image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=1200&auto=format&fit=crop',
@@ -114,14 +121,39 @@ export const PROJECTS_DATA: Project[] = [
       hardware: 'Pantaloneros y zapateros telescópicos de extracción total',
       timeframe: 'Fabricación: 16 días | Montaje: 2 días'
     }
+  },
+  {
+    id: 'living-tv-flotante',
+    segment: 'residencial',
+    type: 'living',
+    title: 'Mueble de TV Flotante y Biblioteca',
+    client: 'Residencia Privada',
+    location: 'Barrio Jardín, Córdoba',
+    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=1200&auto=format&fit=crop',
+    description: 'Rack flotante de 2,40 m con cajones push, pasacables ocultos y biblioteca lateral en módulos abiertos. Melamina blanca con detalles en roble.',
+    materials: ['Melamina Blanco Seda', 'Melamina Roble Natural', 'Herrajes Push to Open', 'Pasacables Ocultos'],
+    specs: {
+      dimensions: 'Rack 2.40m × 0.40m + biblioteca 0.90m × 2.20m',
+      finish: 'Melamina texturada con canto ABS 2 mm',
+      hardware: 'Correderas ocultas push to open',
+      timeframe: 'Fabricación: 10 días | Instalación: 1 día'
+    }
+  },
+  {
+    id: 'modulo-guardado-pared',
+    segment: 'residencial',
+    type: 'placard',
+    title: 'Módulo de Guardado Suspendido',
+    client: 'Departamento Particular',
+    location: 'Nueva Córdoba, Córdoba',
+    image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?q=80&w=1200&auto=format&fit=crop',
+    description: 'Mueble modular suspendido que combina puertas y nichos abiertos, pensado para aprovechar una pared chica sin quitar espacio de circulación.',
+    materials: ['Melamina Roble Escandinavo', 'Soportes Ocultos de Acero', 'Bisagras Cierre Suave'],
+    specs: {
+      dimensions: '1.60m × 0.35m × 1.20m',
+      finish: 'Veta sincronizada textura profunda',
+      hardware: 'Bisagras Blum con cierre suave',
+      timeframe: 'Fabricación: 8 días | Instalación: medio día'
+    }
   }
-];
-
-export const CLIENT_LOGOS = [
-  { name: 'Jacinto Café & Restó', note: 'Sucursales en Shopping Dinosaurio Mall' },
-  { name: 'Dinosaurio Mall', note: 'Obras comerciales autorizadas' },
-  { name: 'Córdoba Shopping', note: 'Islas comerciales y locales' },
-  { name: 'Paseo del Jockey', note: 'Locales y boutiques' },
-  { name: 'Torres Capitalinas', note: 'Mostradores y recepciones corporativas' },
-  { name: 'Estudios de Arquitectura CBA', note: 'Convenio de fabricación técnica a medida' },
 ];

@@ -1,384 +1,235 @@
-import { useState, useMemo } from 'react';
-import confetti from 'canvas-confetti';
+import { useId, useMemo, useState } from 'react';
+import { Minus, Plus, Send } from 'lucide-react';
+import { useMode, type Mode } from '../context/mode';
+import { CONTENT } from '../content/modes';
+import { PRICING, UNIT_LABEL, UNIT_SHORT } from '../config/pricing';
+import { USD_TO_ARS } from '../config/site';
+import { openWhatsApp } from '../lib/whatsapp';
+import { SectionHeader } from './ui/SectionHeader';
+import { Reveal } from './ui/Reveal';
+import { m } from 'framer-motion';
 
-export const LiveEstimator: React.FC = () => {
-  const [typology, setTypology] = useState<'stand' | 'local' | 'autor'>('stand');
-  const [surface, setSurface] = useState<number>(35);
-  const [materialGrade, setMaterialGrade] = useState<'estandar' | 'premium' | 'lujo'>('premium');
-  const [currency, setCurrency] = useState<'ARS' | 'USD'>('ARS');
+type Currency = 'ARS' | 'USD';
 
-  const USD_TO_ARS = 1350;
+const fmtARS = (n: number) =>
+  n >= 1e6
+    ? `$ ${(n / 1e6).toLocaleString('es-AR', { maximumFractionDigits: 1 })} M`
+    : `$ ${Math.round(n / 1000).toLocaleString('es-AR')} mil`;
+const fmtUSD = (n: number) => `US$ ${Math.round(n).toLocaleString('es-AR')}`;
 
-  const calculation = useMemo(() => {
-    // Base cost per m2
-    const baseRates: Record<string, number> = {
-      stand: 420, // Commercial shopping mall island: complete cabinetry, 360 finish, electrical, glass
-      local: 340, // Retail store fitout
-      autor: 390  // High-end bespoke residential
-    };
+export function LiveEstimator() {
+  const { mode } = useMode();
+  // La clave reinicia las opciones con las del nuevo rubro al cambiar de modo.
+  return <Estimator key={mode} mode={mode} />;
+}
 
-    const gradeMultipliers: Record<string, number> = {
-      estandar: 1.0,  // Melamina primera línea Egger/Faplac
-      premium: 1.35,  // Enchapado Paraíso / Petiribí lustrado poliuretánico
-      lujo: 1.70      // Roble macizo, mármol calacatta, herrajes Blum Movento
-    };
+function Estimator({ mode }: { mode: Mode }) {
+  const cfg = PRICING[mode];
+  const uid = useId();
 
-    const baseCostUSD = baseRates[typology] * gradeMultipliers[materialGrade] * surface;
-    const minUSD = Math.round(baseCostUSD * 0.92);
-    const maxUSD = Math.round(baseCostUSD * 1.08);
+  const [typeId, setTypeId] = useState(cfg.typologies[0].id);
+  const [amount, setAmount] = useState(cfg.typologies[0].initial);
+  const [finishId, setFinishId] = useState(cfg.finishes[0].id);
+  const [extras, setExtras] = useState<string[]>([]);
+  const [currency, setCurrency] = useState<Currency>('ARS');
 
-    const minARS = minUSD * USD_TO_ARS;
-    const maxARS = maxUSD * USD_TO_ARS;
+  const type = cfg.typologies.find((t) => t.id === typeId) ?? cfg.typologies[0];
+  const finish = cfg.finishes.find((f) => f.id === finishId) ?? cfg.finishes[0];
 
-    // Production lead times
-    let daysMin = Math.round(12 + surface * 0.18);
-    let daysMax = Math.round(daysMin + 5);
-
-    let nightShifts = surface <= 30 ? '1 a 2 NOCHES EN MALL' : surface <= 80 ? '2 a 3 NOCHES EN MALL' : '4 a 6 NOCHES EN MALL';
-
-    return {
-      minUSD,
-      maxUSD,
-      minARS,
-      maxARS,
-      daysMin,
-      daysMax,
-      nightShifts
-    };
-  }, [typology, surface, materialGrade]);
-
-  const typologyLabels: Record<string, string> = {
-    stand: 'Isla / Stand de Shopping (Dino Mall u otro)',
-    local: 'Local Comercial / Retail',
-    autor: 'Autor / Residencial de Alta Gama'
+  const selectType = (id: string) => {
+    const t = cfg.typologies.find((x) => x.id === id);
+    if (!t) return;
+    setTypeId(id);
+    setAmount(t.initial);
   };
 
-  const materialLabels: Record<string, string> = {
-    estandar: 'Melamina 18mm con cantos ABS 2mm',
-    premium: 'Enchapado en Paraíso / Petiribí con laca B-s1',
-    lujo: 'Madera noble maciza, herrajes Blum y mármol'
+  const clamp = (n: number) => Math.min(type.max, Math.max(type.min, Math.round(n)));
+
+  const result = useMemo(() => {
+    const extraPct = cfg.extras.filter((e) => extras.includes(e.id)).reduce((a, e) => a + e.pct, 0);
+    const base = type.rate * amount * finish.factor * (1 + extraPct);
+    const min = base * 0.9;
+    const max = base * 1.1;
+    const days = Math.round(type.baseDays + amount * (type.unit === 'ml' ? 1.2 : 0.15));
+    return { min, max, daysMin: days, daysMax: days + 5 };
+  }, [cfg, type, amount, finish, extras]);
+
+  const range =
+    currency === 'ARS'
+      ? `${fmtARS(result.min * USD_TO_ARS)} – ${fmtARS(result.max * USD_TO_ARS)}`
+      : `${fmtUSD(result.min)} – ${fmtUSD(result.max)}`;
+
+  const send = () => {
+    const chosen = cfg.extras.filter((e) => extras.includes(e.id)).map((e) => e.label);
+    openWhatsApp(
+      [
+        'Hola Chape, hice un cálculo en la web:',
+        `• Rubro: ${CONTENT[mode].label}`,
+        `• Mueble / obra: ${type.label}`,
+        `• Medida: ${amount} ${UNIT_LABEL[type.unit]}`,
+        `• Terminación: ${finish.label}`,
+        chosen.length ? `• Extras: ${chosen.join(', ')}` : '',
+        `• Rango estimado: ${range}`,
+        '¿Podemos coordinar una visita para medir?',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    );
   };
 
-  const handleWhatsApp = () => {
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.6 },
-      colors: ['#915b36', '#111110', '#c49c6d']
-    });
-
-    const budgetText = currency === 'ARS'
-      ? `$${Math.round(calculation.minARS / 1000).toLocaleString('es-AR')}k - $${Math.round(calculation.maxARS / 1000).toLocaleString('es-AR')}k ARS`
-      : `US$ ${calculation.minUSD.toLocaleString()} - US$ ${calculation.maxUSD.toLocaleString()}`;
-
-    const text = `*Consulta de Cotización — Roberto Muebles:*
------------------------------------------------
-📐 *Tipología:* ${typologyLabels[typology]}
-📏 *Superficie:* ${surface} m²
-🪵 *Acabado:* ${materialLabels[materialGrade]}
-⏱️ *Plazo taller estimado:* ${calculation.daysMin} a ${calculation.daysMax} días hábiles
-🌙 *Ventana montaje:* ${calculation.nightShifts}
-💰 *Rango orientativo preliminar:* ${budgetText}
------------------------------------------------
-¿Podemos coordinar una reunión técnica o visita para revisar planos en Córdoba?`;
-
-    const url = `https://wa.me/5493510000000?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
-  };
+  const optionClass = (active: boolean) =>
+    `rounded-md border px-3 py-2.5 text-left transition-[background-color,border-color,transform] duration-200 active:scale-[0.98] sm:px-4 sm:py-3 ${
+      active ? 'border-ink bg-ink text-bg' : 'border-line bg-bg hover:border-ink/50'
+    }`;
 
   return (
-    <section className="py-20 md:py-28 border-t border-outline-variant blueprint-grid bg-[#faf9f6]" id="cotizador">
-      <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-        {/* Main Architectural Blueprint Sheet Card with Depth Shadow */}
-        <div className="bg-white rounded-2xl border border-outline-variant shadow-[0_24px_65px_-15px_rgba(17,17,16,0.08),0_12px_28px_-10px_rgba(17,17,16,0.04)] hover:shadow-[0_36px_90px_-18px_rgba(17,17,16,0.15),0_18px_40px_-10px_rgba(17,17,16,0.08)] hover:-translate-y-1.5 transition-all duration-500 max-w-4xl mx-auto overflow-hidden relative group">
-          
-          {/* Top Blueprint Coordinates Header Ruler Bar */}
-          <div className="border-b border-outline-variant/80 bg-surface-container/50 px-6 py-2 flex items-center justify-between font-mono text-[9px] text-on-surface-variant select-none tracking-widest">
-            <span className="font-bold text-accent-wood">⊕ SEC-01</span>
-            <div className="flex items-center gap-3 sm:gap-6 text-on-surface-variant/70 font-semibold">
-              <span>01</span>
-              <span>02</span>
-              <span>03</span>
-              <span className="hidden sm:inline">04</span>
-              <span className="hidden sm:inline">05</span>
-              <span>06</span>
-              <span className="hidden sm:inline">07</span>
-              <span>08</span>
-              <span>09</span>
-              <span className="hidden sm:inline">10</span>
-              <span>11</span>
-              <span>12</span>
-            </div>
-            <span className="font-bold text-accent-wood">⊕ 1:25</span>
-          </div>
+    <section id="presupuesto" aria-labelledby="presupuesto-title" className="plan-grid border-b border-line py-14 md:py-28">
+      <div className="mx-auto max-w-[1320px] px-5 md:px-10">
+        <SectionHeader
+          id="presupuesto-title"
+          eyebrow={`Presupuestador en vivo · ${CONTENT[mode].label}`}
+          title="Calculá tu presupuesto"
+          intro={CONTENT[mode].estimator.intro}
+        />
 
-          {/* Left / Right Blueprint Coordinate Tick Overlay (Desktop) */}
-          <div className="hidden lg:flex absolute left-3 top-24 bottom-24 flex-col justify-between font-mono text-[9px] text-on-surface-variant/40 pointer-events-none select-none">
-            <span>A</span>
-            <span>B</span>
-            <span>C</span>
-            <span>D</span>
-            <span>E</span>
-          </div>
-          <div className="hidden lg:flex absolute right-3 top-24 bottom-24 flex-col justify-between font-mono text-[9px] text-on-surface-variant/40 pointer-events-none select-none">
-            <span>A</span>
-            <span>B</span>
-            <span>C</span>
-            <span>D</span>
-            <span>E</span>
-          </div>
-
-          {/* Clean Interior (No grid inside as requested) */}
-          <div className="p-8 md:p-14">
-            {/* Header */}
-            <div className="max-w-2xl mx-auto text-center mb-10">
-              <span className="font-mono text-xs text-accent-wood uppercase tracking-widest">
-                Calculador Técnico • Presupuesto Inmediato
-              </span>
-              <h2 className="text-2xl md:text-3xl font-bold text-primary tracking-tight mt-1 mb-2">
-                Cotización preliminar de proyecto
-              </h2>
-              <p className="text-sm text-on-surface-variant">
-                Seleccione tipología, metraje y materialidad para estimar plazos de taller y rango de inversión.
-              </p>
-            </div>
-
-            <div className="max-w-2xl mx-auto space-y-8 text-left">
-            {/* 1. Tipología */}
-            <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-on-surface-variant mb-3">
-                1. Tipología de Mobiliario
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setTypology('stand')}
-                  className={`py-3 px-4 rounded-lg border text-xs font-mono tracking-wide transition-all duration-200 hover:-translate-y-0.5 ${
-                    typology === 'stand'
-                      ? 'border-primary bg-primary text-white font-medium shadow-xs'
-                      : 'border-outline-variant bg-surface-container text-primary hover:border-primary/60 hover:bg-white'
-                  }`}
-                >
-                  Isla / Stand Shopping
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTypology('local')}
-                  className={`py-3 px-4 rounded-lg border text-xs font-mono tracking-wide transition-all duration-200 hover:-translate-y-0.5 ${
-                    typology === 'local'
-                      ? 'border-primary bg-primary text-white font-medium shadow-xs'
-                      : 'border-outline-variant bg-surface-container text-primary hover:border-primary/60 hover:bg-white'
-                  }`}
-                >
-                  Local Comercial
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTypology('autor')}
-                  className={`py-3 px-4 rounded-lg border text-xs font-mono tracking-wide transition-all duration-200 hover:-translate-y-0.5 ${
-                    typology === 'autor'
-                      ? 'border-primary bg-primary text-white font-medium shadow-xs'
-                      : 'border-outline-variant bg-surface-container text-primary hover:border-primary/60 hover:bg-white'
-                  }`}
-                >
-                  Autor / Residencial
-                </button>
-              </div>
-            </div>
-
-            {/* 2. Superficie Slider & Manual Input (Metro a Metro) */}
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <label className="font-mono text-xs uppercase tracking-wider text-on-surface-variant">
-                  2. Superficie o Metraje
-                </label>
-                
-                {/* Manual Input + Stepper for 1-by-1 meter adjustment */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setSurface((prev) => Math.max(1, prev - 1))}
-                    title="Restar 1 metro"
-                    className="w-7 h-7 flex items-center justify-center rounded border border-outline-variant bg-surface-container hover:bg-white hover:border-primary text-xs font-mono font-bold text-primary transition-colors"
-                  >
-                    -
-                  </button>
-
-                  <div className="flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded border border-outline-variant focus-within:border-primary focus-within:bg-white focus-within:shadow-xs transition-all">
-                    <input
-                      type="number"
-                      min="1"
-                      max="300"
-                      step="1"
-                      value={surface || ''}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        if (isNaN(val) || val <= 0) {
-                          setSurface(1);
-                        } else {
-                          setSurface(Math.min(val, 300));
-                        }
-                      }}
-                      className="w-14 bg-transparent text-right font-mono text-sm font-bold text-primary focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <span className="font-mono text-xs text-on-surface-variant font-medium">m²</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setSurface((prev) => Math.min(300, prev + 1))}
-                    title="Sumar 1 metro"
-                    className="w-7 h-7 flex items-center justify-center rounded border border-outline-variant bg-surface-container hover:bg-white hover:border-primary text-xs font-mono font-bold text-primary transition-colors"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* Slider meter by meter (step=1) */}
-              <input
-                className="w-full accent-primary h-2 bg-surface-container rounded cursor-pointer"
-                max="180"
-                min="1"
-                step="1"
-                type="range"
-                value={surface}
-                onChange={(e) => setSurface(parseInt(e.target.value) || 1)}
-              />
-              <div className="flex justify-between font-mono text-[10px] text-on-surface-variant mt-2">
-                <span>1 m² (Detalle)</span>
-                <span>35 m² (Isla estándar de shopping)</span>
-                <span>180 m² (Local integral)</span>
-              </div>
-            </div>
-
-            {/* 3. Acabado Material */}
-            <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-on-surface-variant mb-3">
-                3. Materialidad &amp; Nivel de Acabado
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {[
-                  { id: 'estandar', label: 'Melamina Faplac 18mm', desc: 'Cantos ABS 2mm a máquina' },
-                  { id: 'premium', label: 'Enchapado Paraíso / Roble', desc: 'Lustre poliuretánico mate' },
-                  { id: 'lujo', label: 'Maderas Nobles & Cuarzo', desc: 'Herrajes Blum + Mármol' },
-                ].map((grade) => (
-                  <button
-                    key={grade.id}
-                    type="button"
-                    onClick={() => setMaterialGrade(grade.id as any)}
-                    className={`p-3 rounded-lg border text-left font-mono transition-all ${
-                      materialGrade === grade.id
-                        ? 'border-primary bg-primary text-white shadow-xs'
-                        : 'border-outline-variant bg-surface-container text-on-surface hover:border-primary/40'
-                    }`}
-                  >
-                    <div className="text-xs font-semibold leading-tight">{grade.label}</div>
-                    <div className={`text-[10px] mt-1 ${materialGrade === grade.id ? 'text-neutral-300' : 'text-on-surface-variant'}`}>
-                      {grade.desc}
-                    </div>
+        <Reveal kind="block" className="grid overflow-hidden rounded-lg border border-line bg-surface lg:grid-cols-[1.5fr_1fr]">
+          {/* Opciones */}
+          <div className="flex flex-col gap-7 p-4 sm:p-6 md:gap-9 md:p-10">
+            <fieldset>
+              <legend className="eyebrow mb-3 text-muted">1 · Qué necesitás</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {cfg.typologies.map((t) => (
+                  <button key={t.id} type="button" aria-pressed={t.id === type.id} onClick={() => selectType(t.id)} className={optionClass(t.id === type.id)}>
+                    <span className="block text-[0.88rem] font-medium leading-snug sm:text-base">{t.label}</span>
+                    <span className={`mt-0.5 block font-mono text-[0.6rem] uppercase tracking-[0.06em] sm:text-[0.7rem] ${t.id === type.id ? 'opacity-75' : 'text-muted'}`}>
+                      Por {UNIT_LABEL[t.unit]}
+                    </span>
                   </button>
                 ))}
               </div>
-            </div>
+            </fieldset>
 
-            {/* Dynamic Result Card Swiss */}
-            <div className="p-5 rounded-lg bg-surface-container/70 backdrop-blur-xs border border-outline-variant space-y-3 font-mono text-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <span className="text-on-surface-variant block text-[11px]">Plazo estimado de fabricación en taller:</span>
-                  <strong className="text-base font-semibold text-primary">
-                    {calculation.daysMin} a {calculation.daysMax} días hábiles
-                  </strong>
-                </div>
-                <div className="sm:text-right">
-                  <span className="text-on-surface-variant block text-[11px]">Ventana de montaje:</span>
-                  <strong className="text-accent-wood font-semibold uppercase">
-                    {calculation.nightShifts}
-                  </strong>
-                </div>
-              </div>
-
-              {/* Budget Range Line */}
-              <div className="pt-3 border-t border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <span className="text-on-surface-variant text-[11px] block">Presupuesto orientativo estimado:</span>
-                  <strong className="text-lg font-bold text-primary font-mono">
-                    {currency === 'ARS' ? (
-                      <>
-                        ${Math.round(calculation.minARS / 1000).toLocaleString('es-AR')}k - ${Math.round(calculation.maxARS / 1000).toLocaleString('es-AR')}k ARS
-                      </>
-                    ) : (
-                      <>
-                        US$ {calculation.minUSD.toLocaleString()} - US$ {calculation.maxUSD.toLocaleString()}
-                      </>
-                    )}
-                  </strong>
-                </div>
-
-                {/* Currency Switcher */}
-                <div className="flex items-center gap-1 bg-white p-1 rounded border border-outline-variant self-start sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={() => setCurrency('ARS')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      currency === 'ARS' ? 'bg-primary text-white' : 'text-on-surface-variant'
-                    }`}
-                  >
-                    ARS
+            <div>
+              <div className="mb-3 flex items-center justify-between gap-4">
+                <label htmlFor={`${uid}-amount`} className="eyebrow text-muted">
+                  2 · Medida ({UNIT_LABEL[type.unit]})
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => setAmount((a) => clamp(a - 1))} aria-label="Restar uno" className="grid h-10 w-10 place-items-center rounded border border-line hover:border-ink">
+                    <Minus className="h-4 w-4" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrency('USD')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      currency === 'USD' ? 'bg-primary text-white' : 'text-on-surface-variant'
-                    }`}
-                  >
-                    USD
+                  <input
+                    id={`${uid}-amount-num`}
+                    type="number"
+                    inputMode="numeric"
+                    min={type.min}
+                    max={type.max}
+                    value={amount}
+                    onChange={(e) => setAmount(clamp(Number(e.target.value) || type.min))}
+                    aria-label={`Medida en ${UNIT_LABEL[type.unit]}`}
+                    className="h-10 w-20 rounded border border-line bg-bg text-center font-mono text-lg tabular-nums focus:border-accent focus:outline-none"
+                  />
+                  <button type="button" onClick={() => setAmount((a) => clamp(a + 1))} aria-label="Sumar uno" className="grid h-10 w-10 place-items-center rounded border border-line hover:border-ink">
+                    <Plus className="h-4 w-4" />
                   </button>
                 </div>
               </div>
+              <input
+                id={`${uid}-amount`}
+                type="range"
+                min={type.min}
+                max={type.max}
+                step={1}
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                className="w-full accent-[var(--corte)]"
+              />
+              <div className="mt-1 flex justify-between font-mono text-[0.7rem] tabular-nums text-muted">
+                <span>{type.min} {UNIT_SHORT[type.unit]}</span>
+                <span>{type.max} {UNIT_SHORT[type.unit]}</span>
+              </div>
             </div>
 
-            {/* Action buttons with hover */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <button
-                type="button"
-                onClick={handleWhatsApp}
-                className="flex items-center justify-center gap-2 bg-primary text-white text-xs font-mono uppercase tracking-wider py-4 rounded-lg hover:bg-neutral-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all shadow-xs"
-              >
-                <span className="material-symbols-outlined text-[18px]">chat</span>
-                Cotizar por WhatsApp
+            <fieldset>
+              <legend className="eyebrow mb-3 text-muted">3 · Terminación</legend>
+              <div className="grid grid-cols-3 gap-2">
+                {cfg.finishes.map((f) => (
+                  <button key={f.id} type="button" aria-pressed={f.id === finish.id} onClick={() => setFinishId(f.id)} className={optionClass(f.id === finish.id)}>
+                    <span className="block text-[0.8rem] font-medium leading-snug sm:text-base">{f.label}</span>
+                    <span className={`mt-0.5 hidden text-[0.82rem] sm:block ${f.id === finish.id ? 'opacity-75' : 'text-muted'}`}>{f.detail}</span>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend className="eyebrow mb-3 text-muted">4 · Extras</legend>
+              <div className="flex flex-wrap gap-2">
+                {cfg.extras.map((e) => {
+                  const on = extras.includes(e.id);
+                  return (
+                    <label key={e.id} className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors ${on ? 'border-corte bg-corte text-grafito' : 'border-line hover:border-ink/50'}`}>
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={on}
+                        onChange={() => setExtras((xs) => (on ? xs.filter((x) => x !== e.id) : [...xs, e.id]))}
+                      />
+                      {e.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          </div>
+
+          {/* Resultado */}
+          <div className="flex flex-col justify-between gap-6 bg-grafito p-5 text-placa md:gap-8 md:p-10" aria-live="polite">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="eyebrow text-cemento">Rango estimado</span>
+                <div role="group" aria-label="Moneda" className="inline-flex rounded-full border border-[#3a3b37] p-0.5">
+                  {(['ARS', 'USD'] as Currency[]).map((cur) => (
+                    <button
+                      key={cur}
+                      type="button"
+                      aria-pressed={currency === cur}
+                      onClick={() => setCurrency(cur)}
+                      className={`rounded-full px-3 py-1 font-mono text-[0.7rem] ${currency === cur ? 'bg-corte text-grafito' : 'text-cemento hover:text-placa'}`}
+                    >
+                      {cur}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <m.p key={range} initial={{ opacity: 0.35, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="font-display mt-4 text-[clamp(1.4rem,2.5vw,2.1rem)] leading-tight tabular-nums md:mt-5">{range}</m.p>
+              <dl className="mt-6 grid gap-3 border-t border-[#3a3b37] pt-6 text-sm">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-cemento">Mueble / obra</dt>
+                  <dd className="text-right">{type.label}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-cemento">Medida</dt>
+                  <dd className="text-right tabular-nums">{amount} {UNIT_SHORT[type.unit]}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-cemento">Plazo de taller</dt>
+                  <dd className="text-right tabular-nums">{result.daysMin} a {result.daysMax} días hábiles</dd>
+                </div>
+              </dl>
+            </div>
+            <div>
+              <button type="button" onClick={send} className="btn btn-primary w-full">
+                <Send className="h-4 w-4" aria-hidden="true" />
+                Enviar por WhatsApp
               </button>
-
-              <a
-                className="flex items-center justify-center gap-2 border border-outline-variant bg-white text-primary text-xs font-mono uppercase tracking-wider py-4 rounded-lg hover:border-primary hover:shadow-xs hover:-translate-y-0.5 active:translate-y-0 transition-all"
-                href="mailto:presupuestos@robertomuebles.com.ar?subject=Envío%20de%20Planos%20para%20Cotización%20Roberto%20Muebles"
-              >
-                <span className="material-symbols-outlined text-[18px]">upload_file</span>
-                Enviar Planos (PDF/DWG)
-              </a>
+              <p className="mt-4 text-[0.8rem] leading-relaxed text-cemento">
+                Valores orientativos. El presupuesto final lo confirmamos después de medir y definir el diseño.
+              </p>
             </div>
           </div>
-        </div>
-
-          {/* Bottom Blueprint Title Block / Coordinates Strip */}
-          <div className="border-t border-outline-variant/80 bg-surface-container/50 px-6 py-2.5 flex flex-col sm:flex-row items-center justify-between font-mono text-[9px] text-on-surface-variant gap-2 select-none tracking-wider">
-            <div className="flex items-center gap-3">
-              <span className="font-semibold text-primary uppercase">HOJA DE PLANO Nº RM-01</span>
-              <span className="text-outline-variant">|</span>
-              <span>ESC: 1:50</span>
-              <span className="text-outline-variant">|</span>
-              <span>UNIDAD: MM / M²</span>
-            </div>
-            <div className="flex items-center gap-3 sm:gap-6 text-on-surface-variant/70 font-semibold">
-              <span>12</span><span>11</span><span className="hidden sm:inline">10</span><span>09</span><span>08</span><span className="hidden sm:inline">07</span><span>06</span><span className="hidden sm:inline">05</span><span>04</span><span>03</span><span>02</span><span>01</span>
-            </div>
-          </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
-};
+}

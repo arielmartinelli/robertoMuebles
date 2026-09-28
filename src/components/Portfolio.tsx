@@ -1,220 +1,206 @@
-import { useState } from 'react';
-import type { Project, ProjectCategory } from '../types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { X, ArrowUpRight } from 'lucide-react';
+import { useMode, type Mode } from '../context/mode';
+import { CONTENT } from '../content/modes';
 import { PROJECTS_DATA } from '../data/projectsData';
-import { X, Check } from 'lucide-react';
+import type { Project, ProjectType } from '../types';
+import { SectionHeader } from './ui/SectionHeader';
+import { Swap } from './ui/Swap';
+import { RevealGroup, RevealItem } from './ui/Reveal';
+import { openWhatsApp } from '../lib/whatsapp';
 
-export const Portfolio: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<ProjectCategory>('todos');
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+const FILTERS: Record<Mode, { key: 'todos' | ProjectType; label: string }[]> = {
+  residencial: [
+    { key: 'todos', label: 'Todos' },
+    { key: 'cocina', label: 'Cocinas' },
+    { key: 'placard', label: 'Placares y vestidores' },
+    { key: 'living', label: 'Living' },
+  ],
+  comercial: [
+    { key: 'todos', label: 'Todos' },
+    { key: 'isla', label: 'Islas de shopping' },
+    { key: 'local', label: 'Locales' },
+    { key: 'mostrador', label: 'Mostradores' },
+  ],
+};
 
-  const categories: { key: ProjectCategory; label: string }[] = [
-    { key: 'todos', label: 'Todas las Obras' },
-    { key: 'islas', label: 'Islas de Shopping' },
-    { key: 'comercial', label: 'Locales & Gastronomía' },
-    { key: 'mostradores', label: 'Mostradores & Recepción' },
-    { key: 'particular', label: 'Residencial / Autor' },
-  ];
+const TYPE_LABEL: Record<ProjectType, string> = {
+  cocina: 'Cocina',
+  placard: 'Placard / guardado',
+  living: 'Living',
+  isla: 'Isla de shopping',
+  local: 'Local comercial',
+  mostrador: 'Mostrador',
+};
 
-  const filteredProjects = activeCategory === 'todos'
-    ? PROJECTS_DATA
-    : PROJECTS_DATA.filter((p) => p.category === activeCategory);
+export function Portfolio() {
+  const { mode } = useMode();
+  // La clave reinicia filtros y ficha abierta al cambiar de modo.
+  return <PortfolioView key={mode} mode={mode} />;
+}
+
+function PortfolioView({ mode }: { mode: Mode }) {
+  const [filter, setFilter] = useState<'todos' | ProjectType>('todos');
+  const [selected, setSelected] = useState<Project | null>(null);
+
+  const projects = useMemo(
+    () => PROJECTS_DATA.filter((p) => p.segment === mode && (filter === 'todos' || p.type === filter)),
+    [mode, filter],
+  );
+
+  const c = CONTENT[mode].projects;
 
   return (
-    <section className="border-t border-outline-variant bg-surface-container-low/70 py-20 md:py-28" id="obras">
-      <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-14 gap-4 text-left">
-          <div>
-            <span className="font-mono text-xs text-accent-wood uppercase tracking-widest">
-              Portfolio Selecto • Millwork &amp; Retail
-            </span>
-            <h2 className="text-3xl md:text-4xl font-bold text-primary tracking-tight mt-1">
-              Obras destacadas
-            </h2>
-          </div>
-          
-          {/* Category Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 font-mono text-xs">
-            {categories.map((cat) => (
-              <button
-                key={cat.key}
-                onClick={() => setActiveCategory(cat.key)}
-                className={`px-3 py-1.5 rounded transition-all border ${
-                  activeCategory === cat.key
-                    ? 'bg-primary text-white border-primary shadow-xs'
-                    : 'bg-white text-on-surface-variant border-outline-variant hover:border-primary/40'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
+    <section id="proyectos" aria-labelledby="proyectos-title" className="border-b border-line bg-surface-2/40 py-14 md:py-28">
+      <div className="mx-auto max-w-[1320px] px-5 md:px-10">
+        <Swap id={`proj-head-${mode}`}>
+          <SectionHeader
+            id="proyectos-title"
+            eyebrow={`Proyectos realizados · ${CONTENT[mode].label}`}
+            title={c.title}
+            intro={c.intro}
+          />
+        </Swap>
 
-        {/* Swiss Grid of Projects */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-          {filteredProjects.map((project) => (
-            <article
-              key={project.id}
-              onClick={() => setSelectedProject(project)}
-              className="group bg-white rounded-xl border border-outline-variant overflow-hidden flex flex-col transition-all duration-300 hover:border-primary/60 hover:-translate-y-1.5 hover:shadow-lg cursor-pointer shadow-xs"
+        <div role="group" aria-label="Filtrar proyectos" className="-mx-5 mb-6 flex gap-2 md:mb-8 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-wrap md:px-0">
+          {FILTERS[mode].map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              aria-pressed={filter === f.key}
+              onClick={() => setFilter(f.key)}
+              className={`shrink-0 rounded-full border px-4 py-2 font-mono text-[0.72rem] uppercase tracking-[0.08em] transition-colors ${
+                filter === f.key ? 'border-ink bg-ink text-bg' : 'border-line text-muted hover:border-ink hover:text-ink'
+              }`}
             >
-              {/* Image Container */}
-              <div className="relative overflow-hidden h-[300px] sm:h-[340px]">
-                <img
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  src={project.image}
-                  alt={project.title}
-                />
-                <div className="absolute top-3 left-3 bg-primary/90 backdrop-blur-sm text-white px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded">
-                  {project.client}
-                </div>
-                <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-md text-primary px-2.5 py-1 text-[10px] font-mono rounded border border-outline-variant">
-                  {project.location}
-                </div>
-              </div>
-
-              {/* Body */}
-              <div className="p-6 md:p-8 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between text-xs font-mono text-on-surface-variant mb-2">
-                    <span className="uppercase">{project.specs.finish.split(' ')[0]} • CÓRDOBA</span>
-                    <span className="text-accent-wood font-semibold uppercase">{project.category}</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-primary mb-2 group-hover:text-accent-wood transition-colors">
-                    {project.title}
-                  </h3>
-                  <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
-                    {project.description}
-                  </p>
-                </div>
-
-                {/* Specs 3 columns */}
-                <div className="grid grid-cols-3 gap-2 pt-4 border-t border-outline-variant font-mono text-[11px] text-on-surface-variant">
-                  <div>
-                    <strong className="block text-primary truncate">{project.materials[0] || 'Paraíso'}</strong>
-                    Material
-                  </div>
-                  <div>
-                    <strong className="block text-primary truncate">{project.specs.timeframe.split('|')[0] || '14 días'}</strong>
-                    Taller
-                  </div>
-                  <div>
-                    <strong className="block text-primary truncate">Blum / Häfele</strong>
-                    Herrajes
-                  </div>
-                </div>
-              </div>
-            </article>
+              {f.label}
+            </button>
           ))}
         </div>
+
+        <Swap id={`proj-${mode}-${filter}`}>
+          {projects.length === 0 ? (
+            <p className="rounded-md border border-dashed border-line p-10 text-center text-muted">Pronto vamos a sumar proyectos en esta categoría.</p>
+          ) : (
+            <RevealGroup as="ul" stagger={0.1} className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3">
+              {projects.map((p) => (
+                <RevealItem as="li" key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(p)}
+                    className="canto lift group flex h-full w-full flex-col overflow-hidden rounded-md border border-line bg-surface text-left"
+                  >
+                    <div className="relative aspect-square w-full overflow-hidden bg-surface-2 sm:aspect-[4/3]">
+                      <img
+                        src={p.image.replace('w=1200', 'w=800')}
+                        alt={p.title}
+                        loading="lazy"
+                        decoding="async"
+                        width={800}
+                        height={600}
+                        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
+                      />
+                      <span className="absolute left-2 top-2 rounded bg-grafito/85 px-2 py-0.5 font-mono text-[0.58rem] uppercase tracking-[0.08em] text-placa sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[0.65rem]">
+                        {TYPE_LABEL[p.type]}
+                      </span>
+                      <span aria-hidden="true" className="absolute inset-x-0 bottom-0 hidden translate-y-full items-center justify-between bg-corte px-4 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-grafito transition-transform duration-300 group-hover:translate-y-0 md:flex">
+                        Ver ficha técnica <ArrowUpRight className="h-4 w-4" />
+                      </span>
+                    </div>
+                    <div className="flex flex-1 flex-col gap-1.5 p-3 sm:gap-2 sm:p-5">
+                      <span className="line-clamp-1 font-mono text-[0.6rem] uppercase tracking-[0.06em] text-muted sm:text-[0.7rem]">{p.location}</span>
+                      <span className="font-display text-[0.78rem] uppercase leading-snug sm:text-[1.02rem]">{p.title}</span>
+                      <span className="mt-auto inline-flex items-center gap-1 pt-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-accent-ink sm:pt-3 sm:text-[0.72rem] md:hidden">
+                        Ver ficha <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+                      </span>
+                    </div>
+                  </button>
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          )}
+        </Swap>
       </div>
 
-      {/* Technical Sheet Modal */}
-      {selectedProject && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => setSelectedProject(null)}
-        >
-          <div 
-            className="relative w-full max-w-2xl rounded-xl bg-white border border-outline-variant shadow-xl overflow-hidden max-h-[90vh] flex flex-col text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 border-b border-outline-variant bg-surface-container">
-              <div>
-                <span className="text-[11px] font-mono text-accent-wood uppercase tracking-wider block">
-                  Pliego Técnico • {selectedProject.client}
-                </span>
-                <h3 className="text-lg font-bold text-primary">
-                  {selectedProject.title}
-                </h3>
-              </div>
-              <button
-                onClick={() => setSelectedProject(null)}
-                className="p-1.5 rounded text-on-surface-variant hover:text-primary hover:bg-surface-container-high"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 space-y-6 overflow-y-auto">
-              <div className="relative rounded-lg overflow-hidden h-64 border border-outline-variant">
-                <img
-                  src={selectedProject.image}
-                  alt={selectedProject.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              <div>
-                <span className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-1">
-                  Memoria Descriptiva &amp; Cumplimiento Mall
-                </span>
-                <p className="text-sm text-on-surface leading-relaxed">
-                  {selectedProject.description}
-                </p>
-              </div>
-
-              {/* Technical Specifications */}
-              <div className="grid grid-cols-2 gap-3 font-mono text-xs">
-                <div className="p-3 rounded bg-surface-container border border-outline-variant">
-                  <span className="text-on-surface-variant block text-[10px] uppercase">Dimensiones</span>
-                  <strong className="text-primary mt-0.5 block">{selectedProject.specs.dimensions}</strong>
-                </div>
-                <div className="p-3 rounded bg-surface-container border border-outline-variant">
-                  <span className="text-on-surface-variant block text-[10px] uppercase">Acabado &amp; Ignífugo</span>
-                  <strong className="text-primary mt-0.5 block">{selectedProject.specs.finish}</strong>
-                </div>
-                <div className="p-3 rounded bg-surface-container border border-outline-variant">
-                  <span className="text-on-surface-variant block text-[10px] uppercase">Herrajes Técnicos</span>
-                  <strong className="text-primary mt-0.5 block">{selectedProject.specs.hardware}</strong>
-                </div>
-                <div className="p-3 rounded bg-surface-container border border-outline-variant">
-                  <span className="text-on-surface-variant block text-[10px] uppercase">Tiempos de Ejecución</span>
-                  <strong className="text-primary mt-0.5 block">{selectedProject.specs.timeframe}</strong>
-                </div>
-              </div>
-
-              <div>
-                <span className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-2">
-                  Materiales Homologados
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {selectedProject.materials.map((m, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono bg-surface-container text-primary border border-outline-variant"
-                    >
-                      <Check className="w-3 h-3 text-accent-wood" />
-                      {m}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="p-4 border-t border-outline-variant bg-surface-container flex items-center justify-between gap-4">
-              <a
-                href={`https://wa.me/5493510000000?text=Hola%20Roberto%20Muebles,%20quiero%20cotizar%20un%20proyecto%20similar%20a:%20${encodeURIComponent(selectedProject.title)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-primary text-white text-xs font-mono uppercase tracking-wider px-5 py-2.5 rounded hover:bg-neutral-800 transition-colors"
-              >
-                Cotizar Proyecto Similar
-              </a>
-              <button
-                onClick={() => setSelectedProject(null)}
-                className="text-xs font-mono text-on-surface-variant hover:text-primary"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {selected && <ProjectDialog project={selected} onClose={() => setSelected(null)} />}
     </section>
   );
-};
+}
+
+function ProjectDialog({ project, onClose }: { project: Project; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+      prev?.focus();
+    };
+  }, [onClose]);
+
+  const specs = [
+    ['Medidas', project.specs.dimensions],
+    ['Terminación', project.specs.finish],
+    ['Herrajes', project.specs.hardware],
+    ['Plazos', project.specs.timeframe],
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dlg-title"
+        onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-xl border border-line bg-bg text-ink sm:rounded-lg"
+      >
+        <div className="relative aspect-[16/8] shrink-0 bg-surface-2">
+          <img src={project.image} alt="" className="h-full w-full object-cover" />
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar ficha"
+            className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-grafito/85 text-placa"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-6 md:p-8">
+          <p className="eyebrow text-accent-ink">{TYPE_LABEL[project.type]} · {project.location}</p>
+          <h3 id="dlg-title" className="font-display mt-2 text-2xl uppercase leading-tight">{project.title}</h3>
+          <p className="mt-1 text-sm text-muted">{project.client}</p>
+          <p className="mt-5 leading-relaxed">{project.description}</p>
+
+          <dl className="mt-6 grid gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-2">
+            {specs.map(([k, v]) => (
+              <div key={k} className="bg-bg p-4">
+                <dt className="font-mono text-[0.68rem] uppercase tracking-[0.1em] text-muted">{k}</dt>
+                <dd className="mt-1 text-[0.95rem]">{v}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <ul className="mt-5 flex flex-wrap gap-2" aria-label="Materiales">
+            {project.materials.map((m) => (
+              <li key={m} className="rounded-full border border-line px-3 py-1 text-sm text-muted">{m}</li>
+            ))}
+          </ul>
+
+          <button
+            type="button"
+            onClick={() => openWhatsApp(`Hola Chape, vi el proyecto "${project.title}" en la web y quiero algo similar.`)}
+            className="btn btn-primary mt-7 w-full sm:w-auto"
+          >
+            Quiero algo similar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

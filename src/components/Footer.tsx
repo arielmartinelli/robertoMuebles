@@ -1,84 +1,25 @@
-export const Footer: React.FC = () => {
+import { SITE } from '../config/site';
+import { ChapeLogo } from './brand/ChapeLogo';
+
+export function Footer() {
   return (
-    <footer className="border-t border-outline-variant bg-white py-16" id="contacto">
-      <div className="max-w-[1400px] mx-auto px-6 md:px-12 text-left">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-14 border-b border-outline-variant">
-          {/* Brand Col */}
-          <div className="md:col-span-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-7 w-7 bg-primary text-white flex items-center justify-center font-mono font-bold text-xs rounded-sm">
-                RM
-              </div>
-              <span className="font-bold text-sm tracking-[0.16em] uppercase text-primary">
-                ROBERTO MUEBLES
-              </span>
-            </div>
-            <p className="text-sm text-on-surface-variant max-w-sm leading-relaxed mb-4">
-              Ebanistería y carpintería arquitectónica especializada en centros comerciales, islas 360° y arquitectura de autor en Córdoba.
-            </p>
-            <span className="inline-block font-mono text-[11px] text-accent-wood">
-              Tolerancia ±0.5 mm • Montajes nocturnos homologados
-            </span>
-          </div>
-
-          {/* Location Col */}
-          <div className="md:col-span-4">
-            <span className="font-mono text-xs uppercase tracking-wider text-on-surface-variant block mb-3">
-              Taller &amp; Oficina Técnica
-            </span>
-            <p className="text-sm text-primary leading-relaxed mb-2 font-mono">
-              Av. Monseñor Pablo Cabrera 3850<br />
-              X5008 Córdoba Capital, Argentina<br />
-              <span className="text-xs text-on-surface-variant">(A 5 min de Dino Mall Rodríguez del Busto)</span>
-            </p>
-            <span className="font-mono text-[11px] text-on-surface-variant">
-              31.3789° S, 64.2014° W
-            </span>
-          </div>
-
-          {/* Direct Contact Col */}
-          <div className="md:col-span-3">
-            <span className="font-mono text-xs uppercase tracking-wider text-on-surface-variant block mb-3">
-              Contacto Directo
-            </span>
-            <p className="text-sm text-primary mb-1 font-mono">
-              <a className="hover:text-accent-wood transition-colors" href="mailto:presupuestos@robertomuebles.com.ar">
-                presupuestos@robertomuebles.com.ar
-              </a>
-            </p>
-            <p className="text-sm text-primary mb-3 font-mono">
-              <a className="hover:text-accent-wood transition-colors" href="tel:+5493514567890">
-                +54 9 351 456-7890
-              </a>
-            </p>
-            <a
-              className="inline-flex items-center gap-1.5 font-mono text-xs text-accent-wood font-medium hover:underline"
-              href="https://wa.me/5493510000000"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              <span>WhatsApp directo con Jefe de Taller</span>
-              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-            </a>
-          </div>
+    <footer className="border-t border-line">
+      <div className="mx-auto flex max-w-[1320px] flex-col gap-8 px-5 py-12 md:flex-row md:items-end md:justify-between md:px-10">
+        <div>
+          <ChapeLogo />
+          <p className="mt-4 max-w-sm text-sm text-muted">
+            Estudio-taller de muebles a medida en melamina. Diseñamos y fabricamos para casas y comercios en {SITE.city}.
+          </p>
         </div>
-
-        {/* Bottom Legal / Navigation */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs font-mono text-on-surface-variant gap-4">
-          <p>© {new Date().getFullYear()} Roberto Muebles • Mobiliario a Medida Córdoba.</p>
-          <div className="flex items-center gap-6">
-            <a className="hover:text-primary transition-colors" href="#obras">
-              Pliego Técnico
-            </a>
-            <a className="hover:text-primary transition-colors" href="#diferenciales">
-              Normas de Shopping
-            </a>
-            <a className="hover:text-primary transition-colors" href="#cotizador">
-              Cotizador en Vivo
-            </a>
-          </div>
+        <div className="flex flex-col gap-3 text-sm md:items-end">
+          <a href={SITE.instagram} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-muted hover:text-ink">
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" /></svg> Instagram
+          </a>
+          <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-muted">
+            © {new Date().getFullYear()} Chape · Diseño + Fabricación
+          </p>
         </div>
       </div>
     </footer>
   );
-};
+}

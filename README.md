@@ -1,73 +1,43 @@
-# robertoMuebles
+# Chape · Sitio web
 
-Landing page de alta conversión y precisión técnica para **Roberto Muebles** (Arquitectura Comercial, Retail Millwork y Mobiliario a Medida para Shoppings y Locales Comerciales en Córdoba, Argentina).
+Sitio de **Chape**, estudio-taller de Córdoba que diseña y fabrica muebles a medida en melamina para casas y comercios.
 
----
+## Qué tiene
 
-## 🚀 Características Principales
+- **Switch Residencial / Comercial**: cambia colores (claro / oscuro), textos, proyectos, presupuestador y formulario de contacto. Se recuerda en el navegador y se puede compartir con `?modo=residencial` o `?modo=comercial`.
+- **Inicio** con el isotipo animado (el cajón se abre al cargar y al cambiar de modo).
+- **Nosotros**: diseño + fabricación y el proceso de trabajo de cada rubro.
+- **Proyectos realizados** filtrables, con ficha técnica de cada obra.
+- **Presupuestador en vivo** con rango en ARS / USD, plazo de taller y envío por WhatsApp.
+- **Reseñas**: se muestran cuando se cargan en `src/data/reviews.ts`; mientras tanto aparece una invitación a dejar una.
+- **Contacto** con validación y envío por WhatsApp.
 
-- **Visualizador 3D Interactivo (Three.js)**:
-  - Modelo paramétrico de isla / stand comercial para shopping mall.
-  - Techo pérgola en "L" con listones de madera clara y cajas lumínicas.
-  - Vitrinas perimetrales iluminadas con bases chanfleadas y estantes de vidrio.
-  - Modos de interacción: rotación 360°, zoom, control de encendido de luces y vista explosionada técnica (*despiece de montaje*).
-- **Cotizador Técnico Preliminar**:
-  - Ajuste metro a metro de superficie con input manual y botones de paso.
-  - Selección de tipología (Isla/Stand, Local Comercial, Franquicia/Cadena) y materialidad técnica (Placa Melamínica, Ebanistería Maciza, Cero Ignífugo B-s1 / Vidrio Templado).
-  - Cálculo instantáneo de costo estimado (ARS / USD), tiempo de fabricación en taller CNC y noches de montaje requeridas.
-  - Estética de hoja de planos arquitectónicos (`RM-01`) con coordenadas numéricas perimetrales y cotización directa por WhatsApp.
-- **Portafolio de Obras**:
-  - Grilla de proyectos destacados (Jacinto Café, Dinosaurio Mall, iZone Apple Reseller, Sartori Joyería).
-  - Modal de inspección técnica con fichas de materiales, herrajes Blum/Häfele y plazos de ejecución.
-- **Estándares de Montaje y Homologación**:
-  - Montaje nocturno certificado sin interrupción de ventas en centros comerciales.
-  - Acreditación para trabajos en shoppings (Dino Mall, Alto Verde, Córdoba Shopping, etc.).
+## Antes de publicar
 
----
+| Qué | Dónde |
+| --- | --- |
+| WhatsApp, teléfono, email, dirección, Instagram | `src/config/site.ts` |
+| Tarifas del presupuestador y cotización del dólar | `src/config/pricing.ts` y `USD_TO_ARS` en `src/config/site.ts` |
+| Fotos y datos reales de las obras | `src/data/projectsData.ts` |
+| Reseñas reales (con permiso del cliente) | `src/data/reviews.ts` |
+| Textos de cada modo | `src/content/modes.ts` |
 
-## 🛠️ Stack Tecnológico
+## Marca
 
-- **Framework**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- **Bundler**: [Vite 6](https://vitejs.dev/)
-- **Estilos**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **3D / Gráficos**: [Three.js](https://threejs.org/)
-- **Efectos**: [Canvas Confetti](https://www.npmjs.com/package/canvas-confetti)
-- **Tipografías**: *Plus Jakarta Sans*, *Inter*, *JetBrains Mono*
+- Colores: Grafito `#1C1D1B`, Placa blanca `#F3F2EE`, Amarillo corte `#F2B705`, Cemento `#9A9C96`, Acero `#4A5157`.
+- Tipografías (servidas desde el propio sitio): Archivo (expandida para títulos) e IBM Plex Mono.
+- Isotipo "Cajón": `src/components/brand/ChapeIso.tsx` (geometría en `src/lib/iso.ts`).
 
----
+## Stack
 
-## 💻 Instalación y Desarrollo
+React 19 + TypeScript + Vite 6 + Tailwind CSS 4 + Framer Motion. Sin Three.js ni librerías pesadas.
 
-1. Clonar el repositorio:
-   ```bash
-   git clone git@github.com:arielmartinelli/robertoMuebles.git
-   cd robertoMuebles
-   ```
+```bash
+npm install
+npm run dev      # desarrollo
+npm run build    # compila en dist/
+npm run preview  # previsualiza la compilación
+npm run lint
+```
 
-2. Instalar dependencias:
-   ```bash
-   npm install
-   ```
-
-3. Iniciar el servidor de desarrollo:
-   ```bash
-   npm run dev
-   ```
-
-4. Generar build de producción:
-   ```bash
-   npm run build
-   ```
-
-5. Previsualizar build:
-   ```bash
-   npm run preview
-   ```
-
----
-
-## 📐 Diseño y Arquitectura
-
-Diseñado bajo principios de diseño editorial suizo y arquitectura técnica de planos:
-- Fondo con grilla de planos milimetrados (`64px x 64px`).
-- Paleta tonal neutra arquitectónica: Marfil (`#faf9f6`), Ceniza (`#f4f2ee`), Grafito (`#111110`) y Acento Nogal (`#915b36`).
+`public/_headers` trae cabeceras de seguridad (CSP, HSTS, etc.) para Netlify o Cloudflare Pages.
